@@ -1,0 +1,27 @@
+---
+- name: Implement a basic webserver
+  hosts: webservers
+  become: true
+  vars:
+    packages:
+      - httpd
+      - httpd-devel
+
+  tasks:
+
+    - name: Remove sample web content
+      ansible.builtin.file:
+        path: /var/www/html/index.html
+        state: absent
+
+    - name: Remove the webserver software
+      ansible.builtin.dnf:
+        name: "{{ packages }}"
+        state: absent
+ 
+    - name: Close the port in the firewall
+      ansible.posix.firewalld:
+        service: http
+        state: disabled
+        immediate: true
+        permanent: true

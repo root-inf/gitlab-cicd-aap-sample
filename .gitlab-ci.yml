@@ -1,0 +1,43 @@
+before_script:
+  - podman login -u $TOKENID -p $SECRET hub.lab.example.com
+
+stages:
+  - lint
+  - deploy
+  - auto_merge
+
+# First stage; all branches
+syntax check and linting:
+  stage: lint
+  script:
+    - podman run --rm --workdir /runner -v ./:/runner/:Z
+                 --name ansible-lint hub.lab.example.com/ee-supported-rhel8:latest
+                 ansible-lint playbook.yml
+
+#Second stage; only dev branch
+launch test job:
+  stage: deploy
+  script:
+    - awx job_templates launch "Deploy Test WebServers" --monitor
+  only:
+    - dev
+
+#Second stage; only the master branch
+launch prod job:
+  stage: deploy
+  script:
+    - awx job_templates launch "Deploy Prod WebServers" --monitor
+  only:
+    - master
+
+#Third stage; only applies to the dev branch
+push to master:
+  stage: auto_merge
+  script:
+    - git remote set-url origin $GIT_REPO
+    - git checkout dev && git pull
+    - git checkout master && git pull
+    - git merge --no-ff dev
+    - git push origin master
+  only:
+    - dev

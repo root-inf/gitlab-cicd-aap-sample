@@ -1,0 +1,44 @@
+---
+- name: Implement a basic webserver
+  hosts: webservers
+  gather_facts: false
+  become: true
+  vars:
+    packages:
+      - httpd
+      - httpd-devel
+
+  tasks:
+    - name: Install the webserver software
+      ansible.builtin.dnf:
+        name: "{{ packages }}"
+        state: installed
+ 
+    - name: Start and persistently enable httpd
+      ansible.builtin.service:
+        name: httpd
+        enabled: true
+        state: started
+
+    - name: Open the port in the firewall
+      ansible.posix.firewalld:
+        service: httpd
+        state: enabled
+        immediate: true
+        permanent: true
+
+    - name: Install sample web content
+      ansible.builtin.copy:
+        content: "Hello world\n"
+        dest: /var/www/html/index.html
+        mode: 0644
+
+    - name: Smoke Test
+      ansible.builtin.uri:
+        url: "http://{{ inventory_hostname }}"
+        return_content: true
+        status_code: 200
+      register: response
+      delegate_to: localhost
+      become: false
+      failed_when: '"Hello World" not in response.content'

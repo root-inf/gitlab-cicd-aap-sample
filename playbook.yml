@@ -1,0 +1,8 @@
+---
+- name: Test ping
+  hosts: webservers
+  gather_facts: false
+
+  tasks:
+    - name: Test if the node is alive
+      ansible.builtin.ping:
